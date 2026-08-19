@@ -3157,6 +3157,8 @@
         <div class="contact-form-card reveal reveal-delay-1">
           <div class="form-title">Send a Quick Message</div>
           <form id="contactForm" onsubmit="handleFormSubmit(event)">
+            <input type="hidden" name="_captcha" value="false">
+            <input type="hidden" name="_template" value="table">
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label" for="form-name">Your Name</label>
@@ -3183,6 +3185,10 @@
           <div id="formSuccess"
             style="display:none;margin-top:14px;padding:14px 18px;border-radius:10px;background:rgba(45,212,191,0.1);border:1px solid rgba(45,212,191,0.3);color:var(--accent-teal);font-size:0.875rem;font-weight:600;text-align:center;">
             ✅ Message sent! I'll get back to you soon.
+          </div>
+          <div id="formError"
+            style="display:none;margin-top:14px;padding:14px 18px;border-radius:10px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#f87171;font-size:0.875rem;font-weight:600;text-align:center;">
+            ⚠️ Could not send message automatically. Please email me directly at <a href="mailto:mhmoud.ibrahim74@gmail.com" style="color:#38bdf8;text-decoration:underline;">mhmoud.ibrahim74@gmail.com</a>.
           </div>
         </div>
       </div>
@@ -3288,19 +3294,63 @@
     }, { rootMargin: '-30% 0px -60% 0px' });
     sections.forEach(sec => sectionObserver.observe(sec));
 
-    // Contact form
-    function handleFormSubmit(e) {
+    // Contact form - Sends details to mhmoud.ibrahim74@gmail.com
+    async function handleFormSubmit(e) {
       e.preventDefault();
+      const form = document.getElementById('contactForm');
       const btn = document.getElementById('form-submit-btn');
+      const successBox = document.getElementById('formSuccess');
+      const errorBox = document.getElementById('formError');
+
+      const name = document.getElementById('form-name').value.trim();
+      const email = document.getElementById('form-email').value.trim();
+      const subject = document.getElementById('form-subject').value.trim() || 'Portfolio Inquiry';
+      const message = document.getElementById('form-message').value.trim();
+
       btn.textContent = 'Sending...';
       btn.disabled = true;
-      setTimeout(() => {
-        document.getElementById('contactForm').reset();
-        document.getElementById('formSuccess').style.display = 'block';
+      if (successBox) successBox.style.display = 'none';
+      if (errorBox) errorBox.style.display = 'none';
+
+      try {
+        const response = await fetch('https://formsubmit.co/ajax/mhmoud.ibrahim74@gmail.com', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            name: name,
+            email: email,
+            _subject: `⚡ Portfolio Message: ${subject} (${name})`,
+            subject: subject,
+            message: message,
+            _captcha: 'false',
+            _template: 'table'
+          })
+        });
+
+        const data = await response.json();
+        if (response.ok && (data.success === 'true' || data.success === true || data.message)) {
+          form.reset();
+          if (successBox) {
+            successBox.style.display = 'block';
+            setTimeout(() => { successBox.style.display = 'none'; }, 7000);
+          }
+        } else {
+          throw new Error(data.message || 'Failed to submit form');
+        }
+      } catch (err) {
+        console.error('Contact form error:', err);
+        if (errorBox) {
+          errorBox.style.display = 'block';
+        } else {
+          window.location.href = `mailto:mhmoud.ibrahim74@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent("From: " + name + " <" + email + ">\n\nMessage:\n" + message)}`;
+        }
+      } finally {
         btn.textContent = 'Send Message ✦';
         btn.disabled = false;
-        setTimeout(() => { document.getElementById('formSuccess').style.display = 'none'; }, 5000);
-      }, 1000);
+      }
     }
 
     // Terminal line-by-line animation
